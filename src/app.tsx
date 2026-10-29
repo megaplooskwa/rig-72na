@@ -20,6 +20,7 @@ export function createApp(config: RigConfig = loadConfig()) {
     ),
   );
 
+  // Plan: plan.md § 2a.
   app.get('/digest/:night', (c) => {
     const night = c.req.param('night');
     const digest = readNight(config.runsDir, night);
@@ -29,6 +30,18 @@ export function createApp(config: RigConfig = loadConfig()) {
         <Digest digest={digest} />
       </Layout>,
     );
+  });
+
+  // The digest as JSON, for agents. Same rows as the page, by construction (ADR 0001).
+  // Plan: plan.md § 2b.
+  app.get('/api/digest/:night', (c) => {
+    const night = c.req.param('night');
+    const digest = readNight(config.runsDir, night);
+    if (digest === null) {
+      return c.json({ night, error: 'no run log for that night' }, 404);
+    }
+    // `badLines` rides along so the page and the JSON tell the same story (ADR 0001).
+    return c.json({ night: digest.night, rows: digest.rows, badLines: digest.badLines });
   });
 
   return app;
