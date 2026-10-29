@@ -1,4 +1,17 @@
-import type { Status } from '../status.js';
+import type { NightOnDisk, Status } from '../status.js';
+
+// Missing data renders as `—`, never an empty cell and never dropped (styleguide).
+const DASH = '—';
+
+// The counts sit beside the link; a night that retried or failed carries the layout's `.warn`.
+function NightCounts({ night }: { night: NightOnDisk }) {
+  if (night.counts === null) {
+    return <span class="mute">{DASH}</span>;
+  }
+  const { ok, retry, fail } = night.counts;
+  const cls = retry > 0 || fail > 0 ? 'warn' : 'mute';
+  return <span class={cls}>{`ok ${ok} · retry ${retry} · fail ${fail}`}</span>;
+}
 
 export function StatusBoard({ status }: { status: Status }) {
   return (
@@ -20,7 +33,10 @@ export function StatusBoard({ status }: { status: Status }) {
       ) : (
         <ul>
           {status.nights.map((n) => (
-            <li>{n}</li>
+            <li>
+              <a href={`/digest/${n.night}`}>{n.night}</a>{' '}
+              <NightCounts night={n} />
+            </li>
           ))}
         </ul>
       )}
