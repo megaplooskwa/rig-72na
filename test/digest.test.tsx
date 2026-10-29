@@ -21,7 +21,7 @@ function tempRuns(files: Record<string, string>): string {
 }
 
 describe('digest JSON route', () => {
-  it('returns the night and its rows, in the log order', async () => {
+  it('returns the night and its rows, sorted by job', async () => {
     const dir = tempRuns({
       '2026-10-28': [
         '{"at":"2026-10-28T23:00:02+01:00","job":"rig/rotate-logs","status":"ok","owner":"lane-07"}',
@@ -35,9 +35,9 @@ describe('digest JSON route', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.night).toBe('2026-10-28');
-    expect(body.rows.map((r: { job: string }) => r.job)).toEqual(['rig/rotate-logs', 'lane/sync']);
-    expect(body.rows[0]).toMatchObject({ job: 'rig/rotate-logs', owner: 'lane-07', runs: 2 });
-    expect(body.rows[1]).toMatchObject({ job: 'lane/sync', runs: 3, retries: 1, lastStatus: 'ok', lastError: 'lock held' });
+    expect(body.rows.map((r: { job: string }) => r.job)).toEqual(['lane/sync', 'rig/rotate-logs']);
+    expect(body.rows[0]).toMatchObject({ job: 'lane/sync', runs: 3, retries: 1, lastStatus: 'ok', lastError: 'lock held' });
+    expect(body.rows[1]).toMatchObject({ job: 'rig/rotate-logs', owner: 'lane-07', runs: 2 });
   });
 
   it('answers 404 as JSON for a night with no file', async () => {
@@ -51,7 +51,7 @@ describe('digest JSON route', () => {
   it('answers an empty night with 200 and no rows', async () => {
     const res = await createApp(config(tempRuns({ '2026-10-26': '' }))).request('/api/digest/2026-10-26');
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ night: '2026-10-26', rows: [] });
+    expect(await res.json()).toEqual({ night: '2026-10-26', rows: [], badLines: 0 });
   });
 
   it('drops a bad line, keeps the rest, and keeps a null owner', async () => {
@@ -74,11 +74,11 @@ describe('digest JSON route', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.rows.map((r: { job: string }) => r.job)).toEqual([
-      'rig/rotate-logs',
-      'lane/sync',
-      'fixtures/refresh',
-      'notes/backup',
       'digest/render',
+      'fixtures/refresh',
+      'lane/sync',
+      'notes/backup',
+      'rig/rotate-logs',
     ]);
   });
 });
